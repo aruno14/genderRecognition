@@ -1,11 +1,15 @@
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import load_model
 import pandas
 import glob
+import matplotlib.pyplot as plt
+import os
 
 image_size = (48, 48)
 batch_size = 32
 epochs = 15
+model_name = "gender_model"
 
 folders = ["UTKFace/"]
 countCat = {0:0, 1:0}
@@ -48,7 +52,18 @@ validation_generator = test_datagen.flow_from_dataframe(
         class_mode='categorical')
 
 print(train_generator.class_indices)
-classifier = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=True, weights=None, input_tensor=None, input_shape=image_size + (3,), pooling=None, classes=2)
-classifier.compile(loss='categorical_crossentropy', metrics=['accuracy'])
-classifier.fit(train_generator, steps_per_epoch=train_generator.samples//batch_size, epochs=epochs, validation_data=validation_generator, validation_steps=validation_generator.samples//batch_size, class_weight=class_weight)
-classifier.save("gender_model")
+if os.path.exists(model_name):
+    print("Load: " + model_name)
+    classifier = load_model(model_name)
+else:
+    classifier = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=True, weights=None, input_tensor=None, input_shape=image_size + (3,), pooling=None, classes=2)
+    classifier.compile(loss='categorical_crossentropy', metrics=['accuracy'])
+history = classifier.fit(train_generator, steps_per_epoch=train_generator.samples//batch_size, epochs=epochs, validation_data=validation_generator, validation_steps=validation_generator.samples//batch_size, class_weight=class_weight)
+classifier.save(model_name)
+
+metrics = history.history
+plt.plot(history.epoch, metrics['loss'], metrics['accuracy'])
+plt.legend(['loss', 'acc'])
+plt.savefig("learning-gender.png")
+plt.show()
+plt.close()
