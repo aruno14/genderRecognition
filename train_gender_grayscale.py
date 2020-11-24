@@ -32,7 +32,6 @@ print(class_weight)
 train_df = pandas.DataFrame(data={"filename": data, "class": labels})
 
 train_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.2, horizontal_flip=True)
-test_datagen = ImageDataGenerator(rescale=1./255)
 train_generator = train_datagen.flow_from_dataframe(
         dataframe=train_df,
         x_col="filename",
@@ -43,7 +42,7 @@ train_generator = train_datagen.flow_from_dataframe(
         subset='training',
         class_mode='categorical')
 
-validation_generator = test_datagen.flow_from_dataframe(
+validation_generator = train_datagen.flow_from_dataframe(
         dataframe=train_df,
         x_col="filename",
         y_col="class",
