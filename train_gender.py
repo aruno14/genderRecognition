@@ -1,12 +1,13 @@
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import load_model, Sequential
+from tensorflow.keras.layers import Flatten, Dense, Dropout, Conv2D, MaxPooling2D, LayerNormalization
 import pandas
 import glob
 import matplotlib.pyplot as plt
 import os
 
-image_size = (48, 48)
+image_size = (64, 64)
 batch_size = 32
 epochs = 15
 model_name = "gender_model"
@@ -21,8 +22,11 @@ for folder in folders:
         age, gender = file.split("_")[0:2]
         age, gender = int(age), int(gender)
         countCat[gender]+=1
-        data.append(folder + file)
-        labels.append(str(gender))
+        filepath = folder + file
+        label = str(gender)
+        data.append(filepath)
+        labels.append(label)
+        print(filepath, label)
 
 minVal = min(countCat.values())
 for key in class_weight:
@@ -55,7 +59,27 @@ if os.path.exists(model_name):
     print("Load: " + model_name)
     classifier = load_model(model_name)
 else:
-    classifier = tf.keras.applications.mobilenet_v2.MobileNetV2(include_top=True, weights=None, input_tensor=None, input_shape=image_size + (3,), pooling=None, classes=2)
+    #ref to https://techvidvan.com/tutorials/gender-age-detection-ml-keras-opencv-cnn/
+    classifier = Sequential()
+    classifier.add(Conv2D(input_shape=image_size + (3,), filters=96, kernel_size=(7, 7), strides=4, padding='valid', activation='relu'))
+    classifier.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+    classifier.add(LayerNormalization())
+    classifier.add(Conv2D(filters=256, kernel_size=(5, 5), strides=1, padding='same', activation='relu'))
+    classifier.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+    classifier.add(LayerNormalization())
+    classifier.add(Conv2D(filters=256, kernel_size=(3, 3), strides=1, padding='same', activation='relu'))
+    classifier.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+    classifier.add(LayerNormalization())
+
+    classifier.add(Flatten())
+    classifier.add(Dense(units=512, activation='relu'))
+    classifier.add(Dropout(rate=0.25))
+    classifier.add(Dense(units=512, activation='relu'))
+    classifier.add(Dropout(rate=0.25))
+    classifier.add(Dense(units=2, activation='softmax'))
+
+    #classifier = tf.keras.applications.MobileNetV3Small(include_top=True, weights=None, input_tensor=None, input_shape=image_size + (3,), pooling='max', classes=2)
+    classifier.summary()
     classifier.compile(loss='categorical_crossentropy', metrics=['accuracy'])
 history = classifier.fit(train_generator, steps_per_epoch=train_generator.samples//batch_size, epochs=epochs, validation_data=validation_generator, validation_steps=validation_generator.samples//batch_size, class_weight=class_weight)
 classifier.save(model_name)

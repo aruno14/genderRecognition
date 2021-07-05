@@ -3,7 +3,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy
 
-image_size = (48, 48)
+image_size = (64, 64)
 model_name = "gender_model_gray"
 
 model = load_model(model_name)
